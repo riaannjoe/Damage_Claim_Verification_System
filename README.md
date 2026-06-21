@@ -1,54 +1,84 @@
-# Damage Claim Verification System
+# Multi-Modal Damage Claim Verification System
 
 ## Overview
 
-This project is an AI-powered **multimodal insurance claim verification pipeline** that analyzes customer-submitted claims using both:
+An AI-powered multimodal claim verification system that combines image understanding, claim text analysis, evidence requirements, and user history to determine whether a damage claim is supported, contradicted, or lacks sufficient evidence.
 
-* **Textual claim descriptions**
-* **Uploaded image evidence**
+Built using **Google Gemini 2.5 Flash Vision** as part of the **HackerRank Orchestrate Hackathon**.
 
-The system automatically evaluates whether the provided images sufficiently support the user’s damage claim and flags suspicious or insufficient evidence for manual review.
-
-It uses **Google Gemini 2.5 Flash Vision** for multimodal reasoning and outputs a structured claim assessment.
+The system automates the initial stages of insurance and warranty claim verification, helping reduce manual workload and prioritize suspicious claims for human review.
 
 ---
 
 ## Problem Statement
 
-Insurance and warranty claim verification is often slow and manual. Fraudulent or low-quality claims increase operational costs and delay genuine approvals.
+Insurance and warranty claim verification is often time-consuming and manually intensive.
 
-This system helps automate the initial verification process by answering:
+Fraudulent, incomplete, or low-quality claims can:
 
-* Is the image evidence sufficient?
-* Does the visual damage match the written claim?
-* Are there signs of fraud or manipulation?
+* Increase operational costs
+* Delay legitimate claim approvals
+* Create inconsistencies in decision-making
+
+This project automates the initial verification process by answering:
+
+* Does the image evidence support the written claim?
+* Is the reported damage visible?
+* Are the provided images sufficient?
+* Are there indicators of fraud or manipulation?
 * Should the claim be escalated for manual review?
+
+---
+
+## System Architecture
+
+```text
+Claim Data
+     │
+     ▼
+Keyword Extraction
+     │
+     ▼
+Evidence Requirement Matching
+     │
+     ▼
+Image Loading & Validation
+     │
+     ▼
+Gemini 2.5 Flash Vision
+     │
+     ▼
+Structured Claim Assessment
+     │
+     ▼
+Output CSV
+```
 
 ---
 
 ## Features
 
-### 1. Claim Data Processing
+### Claim Data Processing
 
-Loads and cleans structured claim data from CSV files:
+Loads and cleans structured claim data from:
 
-* `claims.csv`
-* `user_history.csv`
-* `evidence_requirements.csv`
+* claims.csv
+* user_history.csv
+* evidence_requirements.csv
 
-Data cleaning includes:
+Cleaning includes:
 
 * Removing quotes
-* Stripping whitespace
+* Trimming whitespace
 * Standardizing column names
 
 ---
 
-### 2. Damage Keyword Extraction
+### Damage Keyword Extraction
 
-The system extracts relevant damage-related object parts from claim text.
+Extracts relevant object parts and damage locations from user claims.
 
-Supported keywords include:
+Supported examples include:
 
 * bumper
 * headlight
@@ -63,22 +93,27 @@ Supported keywords include:
 * packaging-related terms
 
 Example:
-User claim:
 
-> "My laptop screen cracked near the hinge"
+**Claim**
 
-Extracted keywords:
+```text
+My laptop screen cracked near the hinge
+```
 
-* screen
-* hinge
+**Extracted Keywords**
+
+```text
+screen
+hinge
+```
 
 ---
 
-### 3. Evidence Requirement Matching
+### Evidence Requirement Matching
 
-Each claim is matched with predefined verification rules from `evidence_requirements.csv`.
+Each claim is matched against predefined verification rules.
 
-Example rules:
+Examples:
 
 * Full object visibility required
 * Damage area must be clearly visible
@@ -91,60 +126,62 @@ Requirements are selected based on:
 
 ---
 
-### 4. Image Evidence Loading
+### Image Evidence Processing
 
-The system loads all submitted images from dataset folders.
-
-Supported behavior:
+Supports:
 
 * Multi-image claims
-* Missing file handling
+* Missing image handling
 * Invalid image fallback
-* Image ID extraction from filenames
+* Image ID extraction
 
 Example:
-damage_001.jpg → image ID = `damage_001`
+
+```text
+damage_001.jpg → damage_001
+```
 
 ---
 
-### 5. Multimodal AI Analysis (Gemini)
+### Multimodal AI Analysis
 
 The core reasoning engine uses:
 
-**Google Gemini 2.5 Flash**
+**Google Gemini 2.5 Flash Vision**
 
 Inputs:
 
-* Claim text
-* Image evidence
+* Claim description
+* Uploaded images
 * User fraud history
-* Required evidence rules
+* Evidence requirements
 
-Gemini performs:
+The model performs:
 
 * Visual inspection
 * Claim verification
-* Risk detection
+* Risk assessment
 * Damage classification
+* Evidence validation
 
 ---
 
 ## AI Output Schema
 
-The model returns structured JSON with:
-
 ### Evidence Quality
 
-* `evidence_standard_met`
-* `evidence_standard_met_reason`
+Determines whether sufficient evidence exists.
 
-Determines whether enough evidence exists.
+Fields:
+
+* evidence_standard_met
+* evidence_standard_met_reason
 
 ---
 
 ### Risk Flags
 
-Possible risk flags:
+Possible flags include:
 
 * none
 * blurry_image
@@ -164,7 +201,7 @@ Possible risk flags:
 
 ### Damage Classification
 
-Possible issue types:
+Possible outputs:
 
 * dent
 * scratch
@@ -183,11 +220,11 @@ Possible issue types:
 
 ### Claim Status
 
-Possible outputs:
+Possible outcomes:
 
-* `supported`
-* `contradicted`
-* `not_enough_information`
+* supported
+* contradicted
+* not_enough_information
 
 ---
 
@@ -207,56 +244,64 @@ The system combines:
 
 ### Visual Risk Detection
 
-Detects:
+Identifies:
 
-* suspicious edits
-* inconsistent damage
-* mismatched object claims
-* manipulated images
+* Suspicious edits
+* Inconsistent damage
+* Mismatched claim evidence
+* Potential image manipulation
 
 ### Historical Risk Detection
 
-User history is analyzed using:
+Analyzes user history using:
 
-* prior fraud flags
-* suspicious claim patterns
+* Prior fraud flags
+* Suspicious claim patterns
 
-If user history contains risk markers:
+If risk indicators exist, the system appends:
 
-* `user_history_risk` is appended to output flags
+```text
+user_history_risk
+```
+
+to the output flags.
 
 ---
 
-## Retry & Rate Limit Handling
+## Rate Limit & Retry Handling
 
-Since Gemini free-tier APIs may return rate-limit errors (`429 RESOURCE_EXHAUSTED`), the pipeline includes:
+Gemini free-tier APIs may occasionally return:
+
+```text
+429 RESOURCE_EXHAUSTED
+```
+
+To improve reliability, the pipeline includes:
 
 * Automatic retries
 * Progressive exponential backoff
-* Failure-safe fallback response
+* Failure-safe fallback responses
 
-Retry settings:
+Configuration:
 
-* Max attempts: 5
+* Maximum attempts: 5
 * Initial backoff: 12 seconds
 * Backoff multiplier: 1.5×
 
-This improves reliability for batch processing.
-
 ---
 
-## Batch Processing Pipeline
+## Processing Pipeline
 
 For every claim:
 
-1. Load claim
+1. Load claim information
 2. Fetch user history
 3. Extract damage keywords
 4. Match evidence requirements
-5. Load images
+5. Load and validate images
 6. Send multimodal prompt to Gemini
 7. Parse structured JSON response
-8. Save results
+8. Save results to output file
 
 ---
 
@@ -264,9 +309,9 @@ For every claim:
 
 Results are saved to:
 
-`output.csv`
-
-Each row contains:
+```text
+output.csv
+```
 
 ### Input Fields
 
@@ -292,7 +337,7 @@ Each row contains:
 
 ## Evaluation Metrics
 
-The system tracks operational metrics:
+The system tracks:
 
 * Total claims processed
 * Total images analyzed
@@ -303,16 +348,18 @@ The system tracks operational metrics:
 
 Example:
 
-* Prompt tokens: 120,000
-* Completion tokens: 25,000
-* Latency: 48.3s
-* Estimated cost: $0.016
+```text
+Prompt Tokens: 120,000
+Completion Tokens: 25,000
+Latency: 48.3 seconds
+Estimated Cost: $0.016
+```
 
 ---
 
 ## Tech Stack
 
-### Programming
+### Programming Language
 
 * Python 3.x
 
@@ -320,9 +367,9 @@ Example:
 
 * pandas
 * Pillow
-* pathlib
-* dotenv
+* python-dotenv
 * pydantic
+* google-genai
 
 ### AI Model
 
@@ -332,72 +379,80 @@ Example:
 
 ## Project Structure
 
-```bash
-project/
+```text
+Damage_Claim_Verification_System/
 │
-├── src/
+├── code/
 │   └── main.py
-│
+│   └── .env.example
+|
 ├── dataset/
 │   ├── claims.csv
+|   ├── sample_claims.csv
 │   ├── user_history.csv
 │   ├── evidence_requirements.csv
 │   └── images/
 │
 ├── output.csv
-├── .env
+├── requirements.txt
+├── .env.example
+├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Setup Instructions
+## Installation
 
-### 1. Clone Repository
+### Clone Repository
 
 ```bash
 git clone <repository_url>
-cd project
+cd Damage_Claim_Verification_System
 ```
 
-### 2. Install Dependencies
+### Install Dependencies
 
 ```bash
-pip install pandas pillow python-dotenv pydantic google-genai
+pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
+### Configure Environment Variables
 
-Create `.env`
+Create a `.env` file using `.env.example`:
 
 ```env
 GEMINI_API_KEY=your_api_key_here
 ```
 
-### 4. Run
+### Run
 
 ```bash
-python main.py
+python code/main.py
 ```
 
 ---
 
 ## Example Use Case
 
-### Input Claim
+### Input
 
 ```text
-Claim Object: car
-Claim: Front bumper dent after collision
-Images: 3 uploaded photos
+Claim Object: Car
+
+Claim:
+Front bumper dent after collision
+
+Images:
+3 uploaded photos
 ```
 
-### AI Output
+### Output
 
 ```json
 {
-  "evidence_standard_met": "true",
-  "risk_flags": "none",
+  "evidence_standard_met": true,
+  "risk_flags": ["none"],
   "issue_type": "dent",
   "object_part": "bumper",
   "claim_status": "supported",
@@ -409,19 +464,19 @@ Images: 3 uploaded photos
 
 ## Future Improvements
 
-Potential enhancements:
+Potential enhancements include:
 
-* Fraud scoring model
+* Fraud scoring models
 * Human-in-the-loop review dashboard
-* Fine-tuned domain-specific VLM
+* Fine-tuned domain-specific vision-language models
 * Real-time web deployment
-* OCR for invoice validation
-* Image tampering detection using CV models
+* OCR-based invoice validation
+* Image tampering detection using computer vision techniques
 
 ---
 
 ## Conclusion
 
-This system demonstrates how **Vision Language Models (VLMs)** can automate claim verification by combining image understanding, textual reasoning, and fraud detection.
+This project demonstrates how Vision Language Models (VLMs) can automate claim verification by combining image understanding, textual reasoning, evidence validation, and fraud detection.
 
-It reduces manual workload, improves consistency, and helps prioritize suspicious claims for human review.
+By leveraging multimodal AI, the system helps reduce manual workload, improve consistency, and prioritize suspicious claims for human review.
